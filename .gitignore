@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.streamlit/secrets.toml
+backups/*.db
+database/seatledger.db
+database/*.db
+database/users/*.db

@@ -1,0 +1,11 @@
+[theme]
+base = "dark"
+primaryColor = "#4f9bb8"
+backgroundColor = "#071521"
+secondaryBackgroundColor = "#102636"
+textColor = "#e8f1f5"
+font = "sans serif"
+
+[server]
+fileWatcherType = "polling"
+headless = true
