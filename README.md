@@ -1,57 +1,70 @@
 # SeatLedger
 
-**SeatLedger** is a professional Streamlit application for library administrators to manage students, seats, monthly fees, dues, reports, and backups.
+**SeatLedger** is a Streamlit application for library administrators to manage students, seats, monthly fees, dues, reports, and backups.
+
+**Live demo:** https://seatledger.streamlit.app
 
 ## Features
 
-- Secure sign in and registration with Werkzeug password hashing
-- Separate student and fee data for each registered library user
-- Manual seat assignment with duplicate-seat protection
+- Sign in and registration (Supabase Auth) with Werkzeug password hashing
+- Signed, expiring session tokens so users stay logged in across refreshes
+- Separate student and fee data for each registered library user (one SQLite database per user)
+- Manual seat assignment with duplicate-seat protection (100 seats by default, set in `config.py`)
 - Student search, editing, deactivation, and permanent deletion
 - Monthly fee collection with Paid, Unpaid, Partial, and Due statuses
 - Joining-date-aware fee history and yearly summaries
-- Dashboard metrics, collection trends, and Excel reports
-- SQLite database storage and dated database backups
+- Dashboard metrics and collection trends
+- Excel reports and dated database backups
 - Optional Google OIDC sign in
+
+## Tech Stack
+
+Python, Streamlit, SQLite, Pandas, openpyxl, Supabase Auth, Werkzeug
 
 ## Run locally
 
-```powershell
-cd "C:\Users\AJIT KUMAR YADAV\OneDrive\Desktop\SeatLedger"
+```bash
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 python -m pip install -r requirements.txt
-python -m streamlit run app.py --server.fileWatcherType polling
+python -m streamlit run app.py
 ```
 
 Open `http://localhost:8501` in your browser.
 
-## Local account
+## Configuration
 
-The first local admin is created with the development credentials in `config.py`:
+**Secrets.** Create `.streamlit/secrets.toml` (never commit it). Start from `.streamlit/secrets.toml.example`:
 
-```text
-Username: admin
-Password: admin123
+```toml
+[supabase]
+url = "your-supabase-project-url"
+key = "your-supabase-anon-key"
+
+# Optional: Google sign in
+[google]
+client_id = "your-google-client-id"
+client_secret = "your-google-client-secret"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
 ```
 
-Change these values before using the application with real data. Passwords are stored as hashes, never as plain text.
+For Google sign in, also register the redirect URI that Streamlit shows for your app.
 
-## Google login
+**Session secret.** Set the `SEATLEDGER_SESSION_SECRET` environment variable to a long random value before deploying.
 
-Copy `.streamlit/secrets.toml.example` to `.streamlit/secrets.toml`, add Google OAuth credentials, and configure the authorized redirect URI. Never commit `secrets.toml`.
+**Default admin.** A development admin account is created from the values in `config.py`. Change them before using the app with real data.
 
 ## Project structure
 
 ```text
-app.py                 Main Streamlit entrypoint
+app.py                 Main Streamlit entrypoint and dashboard
 auth.py                Authentication and session management
-database.py            SQLite schema and queries
+database.py            SQLite schema and queries (per-user database files)
 config.py              Application settings
-pages/                 Dashboard, students, fees, history, reports, settings
-utils/                 Calculations, exports, and backups
-database/              Local SQLite database files
-backups/               Database backups
+pages/                 Dashboard, students, fees, fee history, reports, settings
+utils/                 Calculations, Excel export, and backups
+database/              Local SQLite database files (created at runtime)
+backups/               Database backups (created at runtime)
 ```
 
 ## License
