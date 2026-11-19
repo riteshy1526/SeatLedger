@@ -24,7 +24,7 @@ with st.form("add_student"):
     contact = st.text_input("Contact number *")
     father = st.text_input("Father's name *")
     address = st.text_area("Address *")
-    joined = st.date_input("Joining date", value=date.today())
+    joined = st.date_input("Joining date", value=date.today(), max_value=date(2050, 12, 31))
     fee = st.number_input("Monthly fee (Rs) *", min_value=1.0, step=100.0)
     submitted = st.form_submit_button("Add student", type="primary")
 if submitted:
@@ -46,7 +46,7 @@ table = pd.DataFrame([{"SEAT NO / ID": row["seat_no"], "NAME": row["student_name
 if not table.empty:
     st.dataframe(table.style.set_properties(**{"font-weight": "bold"}).set_table_styles([{"selector": "th", "props": [("font-weight", "bold"), ("text-transform", "uppercase")]}]), use_container_width=True, hide_index=True)
 st.subheader("Monthly payment status")
-status_month = st.date_input("Payment month", date.today().replace(day=1), format="YYYY-MM-DD")
+status_month = st.date_input("Payment month", date.today().replace(day=1), format="YYYY-MM-DD", max_value=date(2050, 12, 31))
 status_students = [row for row in rows if (status_month.year, status_month.month) >= tuple(map(int, row["joining_date"].split("-")[:2]))]
 for row in status_students:
     fee_record = get_fee(row["id"], status_month.month, status_month.year)

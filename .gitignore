@@ -5,3 +5,6 @@ backups/*.db
 database/seatledger.db
 database/*.db
 database/users/*.db
+node_modules
+.env
+/client/dist/

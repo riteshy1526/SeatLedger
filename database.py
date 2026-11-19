@@ -46,13 +46,15 @@ def init_db(shared: bool = False) -> None:
             connection.execute("ALTER TABLE admins ADD COLUMN email TEXT NOT NULL DEFAULT ''")
         if admin_columns and "library_name" not in admin_columns:
             connection.execute("ALTER TABLE admins ADD COLUMN library_name TEXT NOT NULL DEFAULT 'My Library'")
+        if admin_columns and "mobile" not in admin_columns:
+            connection.execute("ALTER TABLE admins ADD COLUMN mobile TEXT NOT NULL DEFAULT ''")
         existing_columns = {row["name"] for row in connection.execute("PRAGMA table_info(students)").fetchall()}
         if existing_columns and "student_name" not in existing_columns:
             connection.execute("ALTER TABLE students RENAME TO students_legacy")
         if connection.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'payments'").fetchone():
             connection.execute("ALTER TABLE payments RENAME TO payments_legacy")
         connection.executescript("""
-            CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT NOT NULL DEFAULT 'Administrator', library_name TEXT NOT NULL DEFAULT 'My Library', username TEXT NOT NULL UNIQUE, email TEXT NOT NULL DEFAULT '', password_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS admins (id INTEGER PRIMARY KEY AUTOINCREMENT, full_name TEXT NOT NULL DEFAULT 'Administrator', library_name TEXT NOT NULL DEFAULT 'My Library', username TEXT NOT NULL UNIQUE, email TEXT NOT NULL DEFAULT '', mobile TEXT NOT NULL DEFAULT '', password_hash TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS students (id INTEGER PRIMARY KEY AUTOINCREMENT, student_name TEXT NOT NULL, seat_no TEXT NOT NULL, contact_no TEXT NOT NULL, father_name TEXT NOT NULL, address TEXT NOT NULL, joining_date TEXT NOT NULL, monthly_fee REAL NOT NULL CHECK(monthly_fee > 0), status TEXT NOT NULL DEFAULT 'Active' CHECK(status IN ('Active', 'Inactive')), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             CREATE UNIQUE INDEX IF NOT EXISTS idx_active_seat ON students(seat_no) WHERE status = 'Active';
             CREATE INDEX IF NOT EXISTS idx_student_status ON students(status);
@@ -60,6 +62,23 @@ def init_db(shared: bool = False) -> None:
             CREATE INDEX IF NOT EXISTS idx_fees_period ON fees(year, month);
         """)
 
+        _create_admin_payment_table(connection)
+
+def _create_admin_payment_table(connection: sqlite3.Connection) -> None:
+    """Create table to store admin’s payment details."""
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS admin_payment (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            upi_id TEXT,
+            bank_name TEXT,
+            account_number TEXT,
+            ifsc_code TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        """
+    )
 
 def count_students(status: str = "Active") -> int:
     with get_connection() as connection:
@@ -198,7 +217,52 @@ def monthly_collections(year: int) -> list[dict[str, object]]:
     with get_connection() as connection:
         return [dict(row) for row in connection.execute("SELECT month, SUM(amount_paid) AS collected, SUM(balance) AS due FROM fees WHERE year = ? GROUP BY month ORDER BY month", (year,)).fetchall()]
 
+    # ----------------------------------------------------------------------
+# ---------- Admin payment helpers ----------
+# ----------------------------------------------------------------------
+
+def get_admin_payment() -> sqlite3.Row | None:
+    """Return the stored admin payment details (UPI / bank)."""
+    with get_connection() as connection:
+        return connection.execute(
+            "SELECT * FROM admin_payment ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+
+
+def upsert_admin_payment(
+    upi_id: str,
+    bank_name: str,
+    account_number: str,
+    ifsc_code: str,
+) -> None:
+    """
+    Insert a new row or update the existing one.
+    The application should keep only a single row; this function guarantees that.
+    """
+    with get_connection() as connection:
+        existing = connection.execute(
+            "SELECT id FROM admin_payment LIMIT 1"
+        ).fetchone()
+        if existing:
+            connection.execute(
+                """
+                UPDATE admin_payment
+                SET upi_id = ?, bank_name = ?, account_number = ?, ifsc_code = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (upi_id, bank_name, account_number, ifsc_code, existing["id"]),
+            )
+        else:
+            connection.execute(
+                """
+                INSERT INTO admin_payment (upi_id, bank_name, account_number, ifsc_code)
+                VALUES (?, ?, ?, ?)
+                """,
+                (upi_id, bank_name, account_number, ifsc_code),
+            )
+
 
 def total_collected() -> float:
     with get_connection() as connection:
         return float(connection.execute("SELECT COALESCE(SUM(amount_paid), 0) FROM fees").fetchone()[0])
+

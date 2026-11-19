@@ -49,6 +49,9 @@ with st.sidebar:
         st.rerun()
     if st.button("Sign out", use_container_width=True):
         logout()
+    if st.button("Payment Settings", use_container_width=True):
+        # Navigates to the page we just created.
+        st.experimental_set_query_params(page="admin_payment")        
 
 render_user_header("Dashboard")
 st.markdown("<style>.stApp,[data-testid='stAppViewContainer']{background:#071521!important;color:#e8f1f5!important} [data-testid='stSidebar']{background:#0b1d2a!important} [data-testid='stMetricLabel'],[data-testid='stMetricValue'],[data-testid='stToolbar'],#MainMenu,header button{color:#e8f1f5!important;fill:#e8f1f5!important} [data-testid='stDataFrame']{border:1px solid #28495d}</style>", unsafe_allow_html=True)

@@ -1,0 +1,17 @@
+{
+  "name": "seatledger-saas",
+  "version": "2.0.0",
+  "description": "Multi-tenant Library Management SaaS Platform with AI Defaulter Prediction",
+  "scripts": {
+    "dev": "powershell -ExecutionPolicy Bypass -File .\\start-seatledger.ps1",
+    "install:all": "npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "seed": "npm --prefix server run seed"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "nodemailer": "^10.3.1",
+    "speakeasy": "^2.0.0"
+  }
+}

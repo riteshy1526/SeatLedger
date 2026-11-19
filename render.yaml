@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: seatledger-api
+    runtime: node
+    autoDeployTrigger: commit
+    buildCommand: npm --prefix server install && npm --prefix client install && npm --prefix client run build
+    startCommand: npm --prefix server start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
